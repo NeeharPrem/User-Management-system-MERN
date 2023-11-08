@@ -1,27 +1,46 @@
 import asyncHandler from "express-async-handler";
 import User from "../models/userModel.js";
-import gernerateToken from "../utils/generateToken.js";
+import generateToken from "../utils/generateToken.js";
+import cloudinary from 'cloudinary';
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv'
+dotenv.config()
+
+cloudinary.v2.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_KEY,
+    api_secret: process.env.CLOUDINARY_SECRET,
+    secure: true,
+});
 
 
 //@desc  Auth user/set token
 //route  POST /api/users/auth
 //@access Public
-const authUser= asyncHandler( async (req,res)=>{
-    const {email,password}=req.body
-    const user= await User.findOne({email})
-    
-    if (user && await user.matchPassword(password)) {
-        gernerateToken(res, user._id)
-        res.status(201).json({
+const authUser = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (user && (await user.matchPassword(password))) {
+        generateToken(res, user._id, 'jwt');
+        const response = {
             _id: user._id,
             name: user.name,
-            email: user.email
-        });
+            email: user.email,
+        };
+
+        if (user.imageUrl) {
+            response.imageUrl = user.imageUrl;
+        }
+
+        res.status(201).json(response);
     } else {
         res.status(401);
-        throw new Error('Invalid email or password')
+        throw new Error('Invalid email or password');
     }
-})
+});
 
 //@desc  Register  a new user
 //route  POST /api/users
@@ -40,7 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     if(user){
-        gernerateToken(res,user._id)
+        generateToken(res,user._id)
         res.status(201).json({
             _id: user._id,
             name: user.name,
@@ -76,29 +95,53 @@ const getUserProfile = asyncHandler(async (req, res) => {
     res.status(200).json({user});
 })
 
-//@desc  Update user profile
-//route  PUT /api/users/profile
-//@access Private
+// @desc    Update user profile
+//route     PUT /api/users/profile
+//@access   Private
 const updateUserProfile = asyncHandler(async (req, res) => {
-    const user= await User.findById(req.user._id)
-    if(user){
-        user.name=req.body.name || user.name;
-        user.email = req.body.email || user.email
-        if(req.body.password){
-            user.password= req.body.password;
+    console.log(req.user._id)
+    const user = await User.findById(req.user._id);
+    if (user) {
+        console.log('yup')
+        if (req.file) {
+            const result = await cloudinary.uploader.upload(req.file.path);
+            user.imageUrl = result.secure_url || null;
+
+            const filePath = path.join('backend', 'public', 'images', req.file.filename);
+
+            fs.unlink(filePath, (err) => {
+                if (err) {
+                    console.error('Error deleting file:', err);
+                }
+            });
         }
 
-        const updatedUser= await user.save()
-        res.status(200).json({
-            _id:updatedUser._id,
+        user.name = req.body.name || user.name;
+        user.email = req.body.email || user.email;
+
+        if (req.body.password) {
+            user.password = req.body.password;
+        }
+
+        const updatedUser = await user.save();
+
+        const response = {
+            _id: updatedUser._id,
             name: updatedUser.name,
-            email: updatedUser.email
-        })
-    }else{
-        res.status(404)
-        throw new Error('User not found')
+            email: updatedUser.email,
+        };
+
+        if (updatedUser.imageUrl) {
+            response.imageUrl = updatedUser.imageUrl;
+        }
+
+        res.status(200).json(response);
+
+    } else {
+        res.status(404);
+        throw new Error('User not found');
     }
-})
+});
 
 export {authUser,registerUser,updateUserProfile,
 getUserProfile,logoutUser
