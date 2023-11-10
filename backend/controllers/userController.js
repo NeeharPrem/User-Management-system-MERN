@@ -24,13 +24,13 @@ const authUser = asyncHandler(async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
-        generateToken(res, user._id, 'jwt');
+        generateToken(res, user._id, 'userJwt');
         const response = {
             _id: user._id,
             name: user.name,
             email: user.email,
         };
-
+        console.log(response)
         if (user.imageUrl) {
             response.imageUrl = user.imageUrl;
         }
@@ -59,7 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     if(user){
-        generateToken(res,user._id)
+        generateToken(res, user._id, 'userJwt')
         res.status(201).json({
             _id: user._id,
             name: user.name,
@@ -76,7 +76,7 @@ const registerUser = asyncHandler(async (req, res) => {
 //route  POST /api/users/logout
 //@access Public
 const logoutUser = asyncHandler(async (req, res) => {
-    res.cookie('jwt', '', {
+    res.cookie('userJwt', '', {
         httpOnly: true,
         expires: new Date(0)
     })
@@ -102,7 +102,6 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     console.log(req.user._id)
     const user = await User.findById(req.user._id);
     if (user) {
-        console.log('yup')
         if (req.file) {
             const result = await cloudinary.uploader.upload(req.file.path);
             user.imageUrl = result.secure_url || null;
