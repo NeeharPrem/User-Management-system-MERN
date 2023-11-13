@@ -15,7 +15,6 @@ const AdminHomeScreen = () => {
     useEffect(() => {
         async function fetchUser() {
             const res = await getUsersData().unwrap("");
-            console.log(res)
             setUsers(res.user);
         }
         fetchUser();

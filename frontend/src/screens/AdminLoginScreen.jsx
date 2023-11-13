@@ -19,8 +19,6 @@ const AdminLoginScreen = () => {
     const [adminLogin, { isLoading }] = useAdminLoginMutation();
 
     const { adminInfo } = useSelector(state => state.auth);
-    console.log(adminInfo)
-
     
     useEffect(() => {
         if (adminInfo) {
