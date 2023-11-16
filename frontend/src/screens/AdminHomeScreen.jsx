@@ -12,6 +12,12 @@ const AdminHomeScreen = () => {
     const [getUsersData, { isLoading }] = useGetUsersDataMutation();
     const [deleteUser] = useDeleteUserMutation();
 
+    const filteredUsers = users.filter(user => {
+        const userName = user.name.toLowerCase();
+        const searchValue = search.toLowerCase();
+        return userName.includes(searchValue);
+    });
+
     useEffect(() => {
         async function fetchUser() {
             const res = await getUsersData().unwrap("");
@@ -20,15 +26,10 @@ const AdminHomeScreen = () => {
         fetchUser();
     }, [data, getUsersData]);
 
-    const filteredUsers = users.filter(user => {
-        const userName = user.name.toLowerCase();
-        const searchValue = search.toLowerCase();
-        return userName.includes(searchValue);
-    });
-
     const deleteHandler = async (id) => {
         try {
             await deleteUser(id).unwrap("");
+            const prevUsers = [...users];
             const data = prevUsers.filter((user) => user._id !== id);
             setData(data);
         } catch (error) {

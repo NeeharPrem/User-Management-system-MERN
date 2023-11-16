@@ -154,19 +154,20 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 const deleteUsers = asyncHandler(async (req, res) => {
     const userId = req.query.id;
     if (!userId) {
-        res.sendStatus(400);
-        throw new Error("Invalid user Data");
+        res.status(400).json({ message: "Invalid user data" });
+        throw new Error("Invalid user data");
     }
 
     const deletedUser = await User.findByIdAndDelete(userId);
 
     if (deletedUser) {
-        res.sendStatus(200);
+        res.status(200).json({ message: "User deleted successfully", deletedUser });
     } else {
-        res.sendStatus(404);
-        throw new Error("Invalid user Data");
+        res.status(404).json({ message: "User not found" });
+        throw new Error("User not found");
     }
 });
+;
 
 
 export {
